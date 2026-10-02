@@ -251,8 +251,8 @@ def test_direct_decimal_budget_preserves_precision(budget, expected):
 @pytest.mark.parametrize(
     "budget",
     [
-        Decimal("0"),
-        Decimal("-1"),
+        Decimal(0),
+        Decimal(-1),
         Decimal("NaN"),
         Decimal("sNaN"),
         Decimal("Infinity"),
