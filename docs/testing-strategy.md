@@ -1,17 +1,14 @@
 # Testing strategy
 
-Status: **partially implemented** (2026-10-02). The expanded offline suite for
-site/run-request models, YAML loading, CLI validation, and directory-based
-site discovery now has 85 tests: 84 pass and one budget JSON round-trip test
-fails. Combined statement/branch coverage reaches 100%, but the checks are
-not green: a small valid Decimal serializes into rejected exponent notation,
-Ruff reports two FURB157 findings, and three test files need formatting.
-The earlier 65-test checkpoint passed with 96% coverage, along with
-wheel/sdist build and fresh-environment wheel verification. Public CI
-is configured locally but has not been verified on GitHub; durable-state tests,
-worker semantics, and Slurm integration remain planned. This document defines the additional
-evidence required before claiming jobflow execution compatibility or live
-HPC support.
+Status: **offline foundation implemented; execution tests planned**
+(2026-10-02). The site/run-request models, YAML loading, CLI validation,
+budget serialization, and directory-based site discovery have 86 locally
+verified passing tests with 100% combined statement/branch coverage. Ruff
+formatting/lint, wheel/sdist build, and fresh-environment wheel verification
+pass. The user also reported a passing GitHub Actions pipeline. Durable-state
+tests, worker semantics, and Slurm integration remain unimplemented. This
+document defines the additional evidence required before claiming jobflow
+execution compatibility or live HPC support.
 
 ## Upstream baseline and our additional obligations
 
@@ -41,7 +38,7 @@ opt-in live HPC verification.
 | Jobflow contract tests | Use installed, pinned `jobflow==0.3.1` objects and tiny importable Python callables; compare observable semantics with jobflow's local execution where appropriate. | Public CI, including fresh-process serialization tests. |
 | Durable-state integration | Real files in temporary workspaces; separate processes; crash injection at each publication boundary; concurrent reconciliation attempts. | Public CI on a local filesystem, then a site filesystem probe. |
 | Simulated controller/Slurm tests | Fake submit/query/cancel responses and repeated scheduled-controller invocations, including delayed or contradictory accounting. | Public CI; no actual `sbatch`. |
-| Packaging and quality | Wheel/sdist build, clean-wheel import, lint/format/type checks, and test/coverage reporting. | Public CI; exact tooling is added with the package. |
+| Packaging and quality | Wheel/sdist build, clean-wheel import, lint/format checks, and test/coverage reporting are implemented; type checking remains planned. | Public GitHub CI and local development. |
 | Live HPC gates | Identity, shared-path, lock/rename, Apptainer/runtime, one bounded toy submission, terminal accounting, restart, and recovery. | Explicitly triggered in an access-controlled downstream consumer; never in public PR CI. |
 | Scientific consumer | atomate2/VASP render, run, parse, and adaptive KSPACING behavior. | Downstream `vaspxatomate2` project after generic HPC gates pass. |
 
@@ -122,30 +119,65 @@ If those capabilities are not proven, live submission is blocked.
 
 The first implementation uses `.github/workflows/ci.yml` on a GitHub
 hosted Ubuntu runner and a reusable `ci/check-wheel.sh` packaging check. Both
-files are present, and their local check sequence passed on 2026-10-02:
-locked synchronization, shell syntax, Ruff formatting/lint, 65 tests with
-96% combined statement/branch coverage, wheel/sdist build, and isolated wheel
-installation/import/CLI checks. Reports are written to `ci-reports/`.
-Execution on GitHub remains pending. The workflow is configured for pushes, pull requests,
-and manual dispatch, retain JUnit/coverage reports and verified distributions,
-and use read-only repository permissions. These artifacts are verification
-outputs; publishing a release to a package index is separate work.
+files are tracked. The local close-out check on 2026-10-02 passed shell syntax,
+Ruff formatting/lint, 86 tests with 100% combined statement/branch coverage,
+wheel/sdist build, and isolated wheel installation/import/CLI checks. Locked
+environment synchronization was also verified during this cycle. Reports are
+written to ignored `ci-reports/`. The user reported successful GitHub
+execution; a run URL has not been recorded.
 
-The intended public CI sequence is: synchronize a locked development
-environment; run formatting/lint/type checks once configured; run offline
+The workflow runs on pushes, pull requests, and manual dispatch, retains
+JUnit/coverage reports for seven days and verified distributions for fourteen
+days, and uses read-only repository permissions. These artifacts are
+verification outputs; publishing a release to a package index is separate
+work. It uses no HPC credentials or licensed software.
+
+The implemented public CI sequence is: synchronize a locked development
+environment; run formatting/lint and shell-syntax checks; run offline
 pytest with branch-coverage reporting; build source and wheel distributions;
 and import the **built wheel** in a clean environment. A build from the source
-checkout alone does not prove that the published wheel contains all modules
-and fixtures. Initially test the pinned Python 3.13/jobflow 0.3.1 pair; add
+checkout alone does not prove that the distribution wheel contains all
+required package modules. The wheel check imports each current package module,
+checks dependency compatibility, and runs the installed console command from
+a fresh environment outside the checkout. The current target is the pinned
+Python 3.13/jobflow 0.3.1 pair; add
 other Python and jobflow versions only after their compatibility tests pass.
 Do not imply support from a dependency resolver alone.
 
 No arbitrary overall coverage percentage is claimed as an upstream
-requirement. Review missing branches in identity, publication, replay,
+requirement. The current 100% result is observed coverage for the small
+offline package, not proof of backend execution correctness. GitHub CI
+reports coverage but does not enforce a minimum. The optional local
+`--cov-fail-under=100` flag was used for the cycle 001 close-out check; no
+repository-wide threshold or type checker has been configured.
+
+Review missing branches in identity, publication, replay,
 submission recovery, and amendment logic explicitly; these safety-critical
 invariants require direct tests even if headline coverage is high. A feature
 PR is not ready when its documented contract row has no test, a failure can
 lead to implicit recalculation, or a terminal state has no useful report.
+
+To reproduce the current local checks:
+
+```bash
+uv sync --locked --dev
+bash -n ci/check-wheel.sh
+uv run --locked ruff format --check src tests
+uv run --locked ruff check src tests
+mkdir -p ci-reports
+uv run --locked pytest -q \
+  --cov=jobflow_gitlab_slurm \
+  --cov-branch \
+  --cov-report=term-missing \
+  --cov-report=xml:ci-reports/coverage.xml \
+  --junitxml=ci-reports/junit.xml
+uv build --no-sources
+bash ci/check-wheel.sh
+```
+
+The wheel check expects exactly one wheel in `dist/` and retains its temporary
+environment for inspection. A uv hardlink-to-copy fallback warning on
+different filesystems is not a test failure.
 
 Live HPC tests are separately authorized and budgeted. They follow the four
 [HPC binding verification gates](hpc-binding.md#verification-gates): offline

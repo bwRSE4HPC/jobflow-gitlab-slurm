@@ -1,6 +1,8 @@
 # Decision 0001: public package, separate HPC consumers
 
-Status: proposed for acceptance before implementation.
+Status: documented architectural direction, reflected in the initial public
+package and offline CI. Formal acceptance was not separately recorded; the
+live downstream consumer remains to be implemented and verified.
 
 The source of this package is a public GitHub repository. General orchestration
 code, documentation, and offline tests are developed here. The package does

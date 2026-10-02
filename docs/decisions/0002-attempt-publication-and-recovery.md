@@ -21,6 +21,11 @@ marker is published on the shared filesystem. The storage adapter must stage
 The worker exits successfully only after publication. The original attempt
 is retained; repair actions create a separate, linked audit trail.
 
+Publication is necessary but not sufficient for downstream scheduling: the
+corresponding Slurm job must also be terminal and successful, as specified in
+[run-state v1](../run-state-v1.md). Finalization or parse-only repair does not
+by itself override a failed or unknown scheduler outcome.
+
 ## Terminal Slurm job with no valid completion marker
 
 The controller first confirms a terminal scheduler state, allows for any

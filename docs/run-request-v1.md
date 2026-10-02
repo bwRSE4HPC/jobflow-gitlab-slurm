@@ -14,7 +14,7 @@ target for subsequent execution and recovery tests.
 | --- | --- |
 | `schema_version` | Required integer `1`; unknown versions and unknown keys fail closed. |
 | `site_id` | Required; must equal the validated site binding's `site_id`. |
-| `workflow.name` | Human-readable, nonempty label for reports. |
+| `workflow.name` | Human-readable, nonempty label for reports; surrounding whitespace is rejected. |
 | `workflow.serialized_flow_sha256` | Required lowercase SHA-256 of the exact serialized jobflow `Flow` bytes stored as `flow/original.json`; the manager must verify the bytes, not merely trust the field. |
 | `workflow.consumer_code_sha256` | Required lowercase SHA-256 of the pinned importable consumer-code artifact available to the controller and worker; its identity must be verified at staging. This need not be a Git commit and remains application-neutral. |
 | `runtime.worker_runtime_sha256` | Required lowercase SHA-256 of the staged worker runtime artifact (for example, a SIF); the launch plan must verify it. It is not an image tag. |
@@ -36,6 +36,16 @@ The request is immutable after creation. A budget increase is a separate
 append-only policy event linked to the same run; it does not reconstruct the
 flow or re-execute committed jobs. Notification changes, if supported later,
 also require an explicit event rather than an in-place request edit.
+
+### Budget serialization
+
+YAML/JSON budget input accepts quoted plain decimal notation, not exponent
+notation (`"1e3"`), numbers, or nonfinite values. The Python API also accepts
+finite positive `Decimal` values. JSON-mode serialization emits fixed-point
+decimal strings, preserving precision without a float conversion: for example,
+`Decimal("1E-18")` becomes `"0.000000000000000001"` and `Decimal("1E+6")`
+becomes `"1000000"`. Python-mode dumps retain `Decimal`; an unbounded budget
+remains `None`/JSON `null`. These round trips are covered by regression tests.
 
 ### Budget increase operation
 
@@ -76,6 +86,12 @@ so duplicate YAML keys cannot silently override values. None of these
 checks calls Slurm, reads licensed data, or proves that the referenced
 artifacts exist. A later staging check verifies hashes and paths; the site
 doctor/smoke gates verify actual account, partition, and filesystem behavior.
+
+The exact serialized-flow envelope and byte/hash boundary must be frozen in
+the first durable-state proposal. [Run-state v1](run-state-v1.md) requires
+versioned envelopes, but their concrete encoding is not implemented or
+specified here. The offline digest validator does not resolve that encoding
+question or authorize implicit reserialization of supplied artifact bytes.
 
 One Slurm allocation executes one jobflow job in the initial backend. The
 resource request is therefore the per-job allocation envelope, while the

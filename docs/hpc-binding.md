@@ -46,9 +46,11 @@ worker:
 For multiple clusters, place one file per site in a dedicated consumer
 directory, for example `hpc/sites/cluster-a.yaml` and
 `hpc/sites/cluster-b.yaml`. The filename stem must equal the file's `site_id`.
-The in-memory registry validates every immediate entry and rejects
-symlinks, non-YAML files, subdirectories, duplicate IDs, and empty
-directories. It selects by exact ID and returns a copy of the selected site:
+The in-memory registry rejects a symlinked root and validates every immediate
+entry: only regular files with the exact `.yaml` suffix are accepted, not
+`.yml` files, symlinks, subdirectories, or other entries. It also rejects
+duplicate IDs and empty directories. It selects by exact ID and returns a
+deep copy of the selected site:
 
 ```python
 from jobflow_gitlab_slurm.registry import SiteRegistry
@@ -72,7 +74,7 @@ it does not implement an atomic filesystem snapshot.
 | `slurm.partitions` | Nonempty list of partitions the consumer permits. |
 | `slurm.default_partition` | One member of `slurm.partitions`. |
 | `storage.provider` | `posix` in the first release; additional providers require installed adapters. |
-| `storage.runs_root` | Existing absolute directory, writable by controller and workers at the same path. Required for `posix`. |
+| `storage.runs_root` | Canonical absolute POSIX path below `/`; no traversal, redundant separators, trailing slash, or control characters. Offline validation checks syntax only; doctor/smoke must check that it exists and is writable by controller and workers at the same path. Required for `posix`. |
 | `worker.launch_mode` | `apptainer` initially; a native mode can be added with its own checks. |
 | `worker.apptainer_command` | Executable name or absolute path on compute nodes. Required for `apptainer`. |
 
@@ -91,7 +93,9 @@ selected partition, bounded resources (nodes, tasks, CPUs per task, memory,
 walltime), immutable workflow/runtime identifiers, and optional notification
 address. Application-specific module setup, additional bind mounts, and
 runtime-image staging belong to the consumer's pinned worker launch plan.
-The manager validates each run request against the binding before submission.
+The offline validator checks site identity and permitted partition now; the
+future manager must repeat these checks against the pinned binding before
+submission.
 There is no arbitrary shell command interpolation from untrusted YAML.
 
 If storage expires, the provider must expose the expiry and the run must

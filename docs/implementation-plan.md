@@ -1,6 +1,9 @@
 # Staged implementation plan
 
-Status: proposed. A stage is complete only when its acceptance checks pass;
+Status (2026-10-02): Stage 1 is complete; execution stages 2–8 remain planned.
+The architectural contracts are documented, with explicit acceptances
+recorded in their decision/contract documents. A stage is complete only when
+its acceptance checks pass;
 the next stage may refine interfaces but must not silently break an earlier
 run-state schema.
 
@@ -16,14 +19,39 @@ run-state schema.
 | 7. Scientific consumer | Pin a tested package commit in `vaspxatomate2`; add the VASP/atomate2 adaptive KSPACING demonstration and any required site workspace provider. | The same run resumes after controller restart, preserves outputs, accounts for compute time, and respects a raised budget without rebuilding the flow. |
 | 8. Generalization review | Document supported jobflow semantics, storage limits, concurrency limits, and site adapters; discuss interfaces with jobflow maintainers. | Public examples and tests support a non-VASP user without KIT-specific code or documentation. |
 
+## Development-cycle hand-off
+
+Cycle `001-jobflow-compatible-package` delivers Stage 1: 86 offline tests
+pass locally with 100% statement/branch coverage, Ruff formatting/lint and
+isolated wheel checks pass, and the user reports a passing GitHub pipeline.
+This establishes configuration and packaging behavior, not jobflow execution
+or live cluster support. See the [progress record](progress.md) for evidence.
+
+After the cycle 001 pull request is merged, start `002-durable-run-state`
+from updated `main`. The first reviewed slice should implement artifact-hash
+verification, immutable request/flow/site snapshots and identity/version
+records, atomic run creation, and per-run locking. Add restart, concurrency,
+and interrupted-publication tests. Remaining Stage 2 result/event storage
+work follows in small reviewed slices; worker execution and Slurm submission
+belong to later stages.
+
+Before implementing creation, freeze the serialized-flow artifact's exact
+envelope and hash boundary. The current documents require both versioned
+state envelopes and verification of exact artifact bytes, but do not yet
+define the concrete envelope shape or whether a transported Flow payload
+is byte-identical to the persisted envelope. The proposal must remove that
+ambiguity; hashes must never depend on an undocumented decode/re-encode step.
+
+## Integration boundaries
+
 Keep the live KIT integration in a separate access-controlled consumer project
 until the generic smoke and recovery gates pass. A GitHub source repository
 does not need a KIT GitLab mirror unless network or deployment policy requires
 one. The consumer pins a commit or release; controller and worker must use
 compatible backend versions recorded in each run manifest.
 
-Implement directory-based site discovery **after** one run request can be
-validated against one site and **before** durable run creation. The registry
+Directory-based site discovery is implemented in Stage 1, after single-site
+run-request validation and before durable run creation. The registry
 is a derived in-memory index of validated, regular `*.yaml` files in a pinned
 consumer directory, not a second hand-maintained configuration file. Run
 creation must persist the selected site's normalized snapshot and digest so

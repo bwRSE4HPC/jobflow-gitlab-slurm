@@ -1,6 +1,9 @@
 # Architecture
 
-Status: proposed design; none of the components below is implemented yet.
+Status: execution architecture remains proposed. Offline site/run-request
+models, YAML loading, validation CLI commands, and the site registry are
+implemented and tested. Durable state, workers, reconciliation, and Slurm
+submission are not implemented.
 
 ## Boundary and responsibilities
 
@@ -13,7 +16,8 @@ required by the initial design.
 
 1. A consumer creates a run from a **pinned**, serializable jobflow `Flow` and
    an immutable run request. The request identifies the worker runtime,
-   resources, site binding, and backend version.
+   resources, and selected site. The creation manifest additionally pins the
+   selected site's snapshot and the backend/jobflow versions.
 2. A scheduled or manually triggered, short-lived GitLab controller job finds
    active runs, obtains a per-run lock, reconciles recorded work with Slurm,
    and submits ready jobs. It must never execute scientific jobs itself.
