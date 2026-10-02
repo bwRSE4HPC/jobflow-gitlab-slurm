@@ -1,0 +1,166 @@
+# Testing strategy
+
+Status: **partially implemented** (2026-10-02). The expanded offline suite for
+site/run-request models, YAML loading, CLI validation, and directory-based
+site discovery now has 85 tests: 84 pass and one budget JSON round-trip test
+fails. Combined statement/branch coverage reaches 100%, but the checks are
+not green: a small valid Decimal serializes into rejected exponent notation,
+Ruff reports two FURB157 findings, and three test files need formatting.
+The earlier 65-test checkpoint passed with 96% coverage, along with
+wheel/sdist build and fresh-environment wheel verification. Public CI
+is configured locally but has not been verified on GitHub; durable-state tests,
+worker semantics, and Slurm integration remain planned. This document defines the additional
+evidence required before claiming jobflow execution compatibility or live
+HPC support.
+
+## Upstream baseline and our additional obligations
+
+The [jobflow contribution guide](https://github.com/materialsproject/jobflow/blob/main/CONTRIBUTING.md)
+asks contributors to use NumPy-style code, update documentation when needed,
+and write `pytest` tests for new features; its CI runs proposed changes. The
+[Materials Project contributor guide](https://docs.materialsproject.org/community/getting-involved/contributor-guide)
+also calls for a regression test for each bug fix and functional tests for
+new features. Jobflow's current [project configuration](https://github.com/materialsproject/jobflow/blob/main/pyproject.toml)
+uses pytest, coverage, and Ruff. These are **upstream alignment targets**, not
+an assertion that this separate repository inherits upstream's exact CI or
+coverage threshold. Recheck the guides and supported Python versions before
+proposing an upstream PR.
+
+For this backend, a passing unit suite alone is insufficient: the central
+claim is that a real jobflow graph can advance over separate controller and
+worker processes without losing identities, duplicating calculations, or
+exposing incomplete results. The test suite therefore separates pure logic,
+jobflow compatibility, durable-state faults, simulated orchestration, and
+opt-in live HPC verification.
+
+## Test layers and where they run
+
+| Layer | Required evidence | Default location |
+| --- | --- | --- |
+| Offline unit tests | Versioned site/run-request schemas, unknown-key rejection, resource bounds, paths, state transitions, budget arithmetic, and precise diagnostics. | Public GitHub CI and local development; no Slurm, GitLab, network, or licensed software. |
+| Jobflow contract tests | Use installed, pinned `jobflow==0.3.1` objects and tiny importable Python callables; compare observable semantics with jobflow's local execution where appropriate. | Public CI, including fresh-process serialization tests. |
+| Durable-state integration | Real files in temporary workspaces; separate processes; crash injection at each publication boundary; concurrent reconciliation attempts. | Public CI on a local filesystem, then a site filesystem probe. |
+| Simulated controller/Slurm tests | Fake submit/query/cancel responses and repeated scheduled-controller invocations, including delayed or contradictory accounting. | Public CI; no actual `sbatch`. |
+| Packaging and quality | Wheel/sdist build, clean-wheel import, lint/format/type checks, and test/coverage reporting. | Public CI; exact tooling is added with the package. |
+| Live HPC gates | Identity, shared-path, lock/rename, Apptainer/runtime, one bounded toy submission, terminal accounting, restart, and recovery. | Explicitly triggered in an access-controlled downstream consumer; never in public PR CI. |
+| Scientific consumer | atomate2/VASP render, run, parse, and adaptive KSPACING behavior. | Downstream `vaspxatomate2` project after generic HPC gates pass. |
+
+Each test names the contract it proves. The public suite must use no VASP
+binary, POTCAR, KIT account, real Slurm allocation, or privileged runner.
+The live suite must not be triggered merely by importing the package or by a
+public pull request.
+
+## Jobflow compatibility matrix
+
+The [compatibility contract](jobflow-compatibility.md) is the source of truth
+for supported behavior. Every row below needs at least one positive test and
+one relevant negative or replay test before it is advertised as supported.
+Unsupported jobflow behavior must be rejected clearly, not silently ignored.
+
+| Contract | Minimum test fixture and assertion |
+| --- | --- |
+| Static graph and output references | Two-job parent/child flow; child receives the committed parent value, not an unresolved reference; a missing parent result blocks the child. |
+| Identity across processes | Serialize once, load in a second process, and reconcile repeatedly; flow/job UUIDs and indices stay fixed without calling the maker again. |
+| Store semantics | Persist a jobflow-compatible output document; reopen in another process and resolve a child's reference; staged or malformed documents remain invisible. |
+| Dynamic `Response` | Cover `addition`, `replace`, and `detour` separately; serialize the full response, restart, and prove each new job is introduced and run at most once in the correct order. |
+| Stop semantics | `stop_children` and `stop_jobflow` prevent the appropriate descendants from being submitted, including after restart. |
+| File hand-off | A child can read only declared retained predecessor files at a stable path after the predecessor allocation ends; missing or altered files fail visibly. |
+| Failure and amendment | A failed child leaves committed ancestors reusable; an explicitly approved corrected definition creates one new attempt and preserves the original flow and evidence. Out-of-scope amendments fail closed. |
+
+Test callables belong in an **importable fixture module**, not in `__main__`
+or an inline shell Python snippet, because serialized jobflow functions must
+load in another process. Use tiny arithmetic/string/file jobs so tests expose
+backend behavior instead of application-specific physics.
+
+## Persistence, concurrency, and recovery tests
+
+Run the state machine against a temporary run root that follows
+[run-state v1](run-state-v1.md). Inject failure immediately before and after
+each durable boundary: request/flow write, submission intent, Slurm receipt,
+job document, full `Response`, file manifest, publication rename, `COMMIT`,
+dynamic-response event, and latest-report projection. Restart a **new
+process** after each interruption. Required invariant: descendants see a
+result only after a complete validated commit and successful terminal Slurm
+state; no replay creates a second committed result or applies a dynamic
+response twice.
+
+Run two reconcilers against the same run to prove lock exclusion. Simulate an
+accepted `sbatch` whose receipt was not written: lookup by the stable token
+must recover the existing job, or leave the outcome `unknown`; it must not
+blindly resubmit. Simulate missing `Response`, corrupt JSON, missing files,
+conflicting worker invocations, expired workspace, unavailable accounting,
+timeout, cancellation, and a completed application with failed parsing. Keep
+the original evidence and verify the user-facing report names run/job/attempt,
+scheduler and publication states, held descendants, evidence paths, and a
+truthful repair-or-relaunch action.
+
+The local-filesystem suite cannot establish cross-host HPC filesystem
+semantics. The downstream doctor/smoke tests must separately demonstrate
+lock exclusion and rename visibility from controller and compute-node hosts.
+If those capabilities are not proven, live submission is blocked.
+
+## Deterministic harness rules
+
+- Inject a clock, ID generator, Slurm adapter, and filesystem fault hook so
+  crash windows are repeatable; keep one small integration path using real
+  subprocesses and files rather than mocks alone.
+- Use fake Slurm responses for pending, running, completed, failed, timed out,
+  cancelled, unknown, duplicate-token, and accounting-lag cases. Assert the
+  number of **submission calls**, not only the final state.
+- Never rely on test order, a persistent developer database, wall-clock sleep,
+  or the availability of a particular KIT cluster. Temporary directories and
+  fake state are isolated per test.
+- Preserve a minimal redacted fixture for every regression. A bug fix adds a
+  failing-before/fixed-after test, as requested by Materials Project guidance.
+- Test both unbounded compute-hour budget and a finite budget that pauses the
+  same run, records consumed allocated CPU-hours, accepts an explicit top-up,
+  and resumes without rebuilding or rerunning committed jobs.
+- Check that diagnostics and public CI artifacts do not print tokens, licensed
+  inputs, proprietary output, or full environment dumps.
+
+## CI and release gates
+
+The first implementation uses `.github/workflows/ci.yml` on a GitHub
+hosted Ubuntu runner and a reusable `ci/check-wheel.sh` packaging check. Both
+files are present, and their local check sequence passed on 2026-10-02:
+locked synchronization, shell syntax, Ruff formatting/lint, 65 tests with
+96% combined statement/branch coverage, wheel/sdist build, and isolated wheel
+installation/import/CLI checks. Reports are written to `ci-reports/`.
+Execution on GitHub remains pending. The workflow is configured for pushes, pull requests,
+and manual dispatch, retain JUnit/coverage reports and verified distributions,
+and use read-only repository permissions. These artifacts are verification
+outputs; publishing a release to a package index is separate work.
+
+The intended public CI sequence is: synchronize a locked development
+environment; run formatting/lint/type checks once configured; run offline
+pytest with branch-coverage reporting; build source and wheel distributions;
+and import the **built wheel** in a clean environment. A build from the source
+checkout alone does not prove that the published wheel contains all modules
+and fixtures. Initially test the pinned Python 3.13/jobflow 0.3.1 pair; add
+other Python and jobflow versions only after their compatibility tests pass.
+Do not imply support from a dependency resolver alone.
+
+No arbitrary overall coverage percentage is claimed as an upstream
+requirement. Review missing branches in identity, publication, replay,
+submission recovery, and amendment logic explicitly; these safety-critical
+invariants require direct tests even if headline coverage is high. A feature
+PR is not ready when its documented contract row has no test, a failure can
+lead to implicit recalculation, or a terminal state has no useful report.
+
+Live HPC tests are separately authorized and budgeted. They follow the four
+[HPC binding verification gates](hpc-binding.md#verification-gates): offline
+validation, non-submitting doctor, bounded toy smoke, and recovery. Record
+the site/runtime versions, Slurm ID, run path, observed state, and sanitized
+failure evidence. The private consumer adds VASP/atomate2 tests only after the
+generic non-VASP path passes. A live success on one site does not replace the
+offline suite or establish portability to another cluster.
+
+## Review evidence
+
+For a significant change, the PR description should state the changed
+contract rows, exact offline commands and results, wheel-build result,
+version pair tested, and any live gate performed or deliberately deferred.
+For a bug report, retain upstream's reproducible example, expected versus
+actual behavior, and traceback; add a redacted run/job/attempt ID, state
+records, scheduler result, and backend/jobflow versions when relevant. Never
+publish site credentials or licensed scientific data in this public repo.

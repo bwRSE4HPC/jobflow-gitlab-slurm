@@ -1,0 +1,83 @@
+name: Offline CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-checks:
+    name: Offline checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.1"
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install locked development environment
+        run: uv sync --locked --dev
+
+      - name: Check formatting and lint
+        run: |
+          uv run --locked ruff format --check src tests
+          uv run --locked ruff check src tests
+          bash -n ci/check-wheel.sh
+
+      - name: Run offline tests with coverage
+        run: |
+          mkdir -p ci-reports
+          uv run --locked pytest -q \
+            --cov=jobflow_gitlab_slurm \
+            --cov-branch \
+            --cov-report=term-missing \
+            --cov-report=xml:ci-reports/coverage.xml \
+            --junitxml=ci-reports/junit.xml
+
+      - name: Build distributions
+        run: uv build --no-sources
+
+      - name: Verify isolated wheel installation
+        run: bash ci/check-wheel.sh
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-reports
+          path: |
+            ci-reports/coverage.xml
+            ci-reports/junit.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload verified distributions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,25 @@
+[project]
+name = "jobflow-gitlab-slurm"
+version = "0.1.0.dev0"
+description = "GitLab-scheduled Slurm execution backend for jobflow"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "jobflow==0.3.1",
+    "pydantic>=2.12,<3",
+    "PyYAML>=6.0,<7",
+]
+
+[project.scripts]
+jobflow-gitlab-slurm = "jobflow_gitlab_slurm.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9,<10",
+    "pytest-cov>=7,<8",
+    "ruff>=0.13,<1",
+]
