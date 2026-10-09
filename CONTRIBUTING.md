@@ -8,9 +8,24 @@ site-specific HPC configuration belong in downstream consumer projects.
 
 ## Current scope
 
-Offline site/run-request validation, site discovery, and packaging checks
-are implemented. Durable state, worker execution, reconciliation, and Slurm
-submission remain planned.
+The offline foundation is implemented: site/run-request validation and discovery,
+exact-byte artifact verification, immutable run/definition/attempt/invocation
+storage, persistent ownership, anchored journal operations, read-only inspection,
+opaque bundle publication, retained intents, explicit recovery/audit, and stable
+completion-event registration. Cross-process lifecycle tests complement the
+component failure/restart tests.
+
+Cycle 002 slices are locally accepted and its review is user-reported complete;
+the committed candidate matches the local verification gate and remote
+`Offline checks` is user-reported passing. Final documentation review and
+close-out/merge approval remain. See [progress](docs/progress.md) and the
+[cycle overview](docs/002-durable-run-state.md) for evidence rather than treating
+historical counts as the current suite size.
+
+The production `JobStore` adapter, worker/producer enforcement, jobflow execution
+semantics, scheduler-aware result selection, Slurm submission/reconciliation,
+and GitLab orchestration remain planned. Local verification is not live HPC
+support, cross-host durability, or scientific/scheduler success.
 
 Before starting a significant feature, review:
 
@@ -41,8 +56,13 @@ uv sync --locked --dev
 uv run --locked jobflow-gitlab-slurm --help
 ```
 
-Use a feature branch based on current `main`. Keep changes focused and avoid
-unrelated formatting or dependency updates.
+Use a cycle branch based on current `main` after the previous cycle has merged.
+Name it `XXX-branch-name`, with a sequential, zero-padded three-digit number,
+for example `002-durable-run-state`. Create its matching document at
+`docs/XXX-branch-name.md` when planning begins. Place refined slice and contract
+documents in `docs/XXX-branch-name/`, using the same cycle stem. Keep each major
+stage on its own branch and implement it in small reviewed slices; avoid unrelated formatting
+or dependency updates.
 
 Change dependencies in `pyproject.toml`, then regenerate the lockfile with
 `uv lock`. Commit both files when dependencies change.
@@ -56,9 +76,39 @@ Change dependencies in `pyproject.toml`, then regenerate the lockfile with
 - Preserve versioned contracts; reject unsupported versions explicitly.
 - Do not introduce implicit scientific reruns or unsafe submission retries.
 
+Follow the [package organization](docs/002-durable-run-state/package-organization.md):
+record models must not depend on storage operations, queries must not repair
+state, and package initializers remain inert. Tests mirror component ownership;
+cross-contract composition belongs under integration. Import reusable setup
+from explicit support modules, never from collected test modules. The original
+flat Python imports have been intentionally removed; use the qualified domain
+paths.
+
 Discuss changes affecting identities, locking, publication, amendments, or
 recovery before implementation. Record significant design decisions in
 `docs/decisions/`.
+
+Documentation responsibilities:
+
+- [Implementation plan](docs/implementation-plan.md): concise roadmap, major
+  stages, dependencies, and acceptance gates.
+- [Progress](docs/progress.md): current implemented state, verification evidence,
+  pending gates, blockers, and next action.
+- `docs/XXX-branch-name.md`: branch-matching cycle overview, scope, slice map,
+  risks, and acceptance checks. Current and completed cycles are linked from
+  the roadmap.
+- `docs/XXX-branch-name/`: refined implementation-slice documentation and
+  cycle-owned contracts. Keep existing descriptive/versioned filenames inside
+  the folder; link them from the cycle overview.
+- Versioned contracts (`*-v1.md`) and numbered design decisions in
+  `docs/decisions/`: authoritative interface/format and decision records, with
+  independent naming schemes; cycle numbers do not replace their versions or IDs.
+
+Cross-link these documents instead of duplicating status. Record implementation
+slices and significant decisions, not minor test-fix iterations. Distinguish
+proposed, approved, installed, locally verified, CI-verified, and live-verified
+behavior. Preserve existing contributor edits and keep private site details out
+of public documentation.
 
 ## Tests
 
@@ -125,6 +175,12 @@ Describe:
 - Tests added and checks performed.
 - Documentation changes.
 - Remaining limitations and deliberately deferred verification.
+
+Before closing a cycle, review the diff, pass its agreed verification gates,
+and document completed scope, remaining limitations, and the next checkpoint.
+Use the hosting platform's squash-merge option to integrate one coherent cycle
+commit; do not rewrite shared branch history. Begin the next cycle from updated
+`main` only after the merge.
 
 GitHub Actions must pass before merging. Public CI verifies offline behavior
 and packaging; it does not establish live HPC support.

@@ -1,9 +1,22 @@
 # Architecture
 
-Status: execution architecture remains proposed. Offline site/run-request
-models, YAML loading, validation CLI commands, and the site registry are
-implemented and tested. Durable state, workers, reconciliation, and Slurm
-submission are not implemented.
+Status (2026-10-09): execution architecture remains proposed. The offline
+validation and persistence foundation is installed: site/run-request discovery,
+artifact verification, pinned site snapshots, run creation/reopening, qualified
+definition/attempt/invocation storage, ownership, anchored journal operations,
+opaque bundle publication, retained intent storage, explicit recovery/audit,
+and completion-event registration. Read-only inspection and cross-process
+lifecycle tests are also installed. Local slice gates are accepted on recorded
+evidence; assistant cycle review and full local verification passed on
+2026-10-09. Cycle 002 integration gates remain pending. See [progress](progress.md)
+for verification evidence and [cycle 002](002-durable-run-state.md) for scope.
+
+No production `JobStore` adapter, worker, producer enforcement, execution-status
+projection, scheduler-aware result selection, Slurm submission/reconciliation,
+or GitLab controller integration is implemented. Persistence inspection reports
+filesystem integrity, not scientific success or scheduler eligibility. The
+responsibilities below describe the intended complete system, not current
+execution support.
 
 ## Boundary and responsibilities
 
@@ -67,8 +80,14 @@ completion marker. A terminal Slurm job with an incomplete attempt is held for
 safe finalization, parse-only repair, or explicit user-authorized relaunch.
 Each outcome has a user-facing evidence report. Neither Slurm requeue nor
 automatic scientific recomputation is a recovery operation.
-The concrete [run-state v1 layout](run-state-v1.md) has been accepted for the
-first slice; none of its paths or adapters exists yet.
+The concrete [run-state v1 layout](002-durable-run-state/run-state-v1.md) has been accepted.
+Run metadata, exact original Flow bytes, external-artifact references,
+per-run locks, the anchored event journal, and original-Flow job-definition
+storage and attempt/invocation metadata storage are implemented. Completion
+bundle publication, explicit same-identity recovery/audit, and completion-event
+registration are installed and locally verified. The jobflow result-store
+adapter, worker integration, and scheduler-aware recovery remain planned. The illustrative layout
+is not a claim that every planned path exists.
 The accepted [failed-job amendment](decisions/0003-failed-job-amendments.md)
 allows an explicit corrected definition and new attempt in the same run only
 when the failed job has no committed output and no descendant has started.
@@ -97,6 +116,13 @@ Other workspace lifecycles (for example, an expiring allocation service) must
 enter through a provider interface that can create, resolve, list, and report
 the expiry of runs. A site-specific provider belongs in the consumer unless
 its behavior proves generally useful.
+
+The proposed [retention and recovery refinement](architecture-refinement-retention-and-recovery.md)
+separates workspace expiry, independent loss/rollback detection, operational
+protection, archival, restoration, and scientific continuation. These are not
+installed capabilities. The small project-directory catalog/witness is deferred
+until a persistence mechanism addressing workspace expiry receives explicit
+approval; additional storage services remain outside the current setup.
 
 See [jobflow compatibility](jobflow-compatibility.md) for the behavior this
 manager must preserve. Jobflow's public documentation describes `Job`, `Flow`,

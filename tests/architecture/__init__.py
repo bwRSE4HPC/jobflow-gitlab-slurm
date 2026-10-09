@@ -1,0 +1,1 @@
+"""Offline architecture contracts."""

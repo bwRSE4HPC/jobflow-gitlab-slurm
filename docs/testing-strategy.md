@@ -1,14 +1,26 @@
 # Testing strategy
 
-Status: **offline foundation implemented; execution tests planned**
-(2026-10-02). The site/run-request models, YAML loading, CLI validation,
-budget serialization, and directory-based site discovery have 86 locally
-verified passing tests with 100% combined statement/branch coverage. Ruff
-formatting/lint, wheel/sdist build, and fresh-environment wheel verification
-pass. The user also reported a passing GitHub Actions pipeline. Durable-state
-tests, worker semantics, and Slurm integration remain unimplemented. This
-document defines the additional evidence required before claiming jobflow
-execution compatibility or live HPC support.
+Status (2026-10-09): **offline foundation implemented and locally verified;
+execution tests planned**. The assistant's cycle 002 code/documentation review
+and full local quality, test/coverage, and packaging gate passed. The
+[review record](002-durable-run-state/review-and-verification.md) retains commands
+and results; [progress](progress.md) owns the checkpoint. User documentation
+review, committed candidate identification, and cycle-specific remote
+`Offline checks` CI remain pending. Historical slice evidence remains in the
+cycle overview rather than being duplicated here.
+
+Installed tests cover configuration, opaque artifacts and metadata, POSIX run
+storage/discovery, anchored journal operations, qualified definitions/attempts/
+invocations, ownership, bundle inspection/publication, retained intent/audit,
+explicit recovery, and completion-event association. Cross-process lifecycle
+tests exercise empty-root creation, metadata hand-offs, publication, recovery,
+registration, and conservative evidence holds. Inert payloads test persistence,
+not jobflow execution or scheduler semantics.
+
+Cycle 001 GitHub Actions success is user-reported; no cycle 002 remote result
+is recorded. Cross-host filesystem tests, worker semantics, and Slurm integration
+remain unimplemented. This document defines the additional evidence required
+before claiming jobflow execution compatibility or live HPC support.
 
 ## Upstream baseline and our additional obligations
 
@@ -72,7 +84,7 @@ backend behavior instead of application-specific physics.
 ## Persistence, concurrency, and recovery tests
 
 Run the state machine against a temporary run root that follows
-[run-state v1](run-state-v1.md). Inject failure immediately before and after
+[run-state v1](002-durable-run-state/run-state-v1.md). Inject failure immediately before and after
 each durable boundary: request/flow write, submission intent, Slurm receipt,
 job document, full `Response`, file manifest, publication rename, `COMMIT`,
 dynamic-response event, and latest-report projection. Restart a **new
@@ -122,9 +134,20 @@ hosted Ubuntu runner and a reusable `ci/check-wheel.sh` packaging check. Both
 files are tracked. The local close-out check on 2026-10-02 passed shell syntax,
 Ruff formatting/lint, 86 tests with 100% combined statement/branch coverage,
 wheel/sdist build, and isolated wheel installation/import/CLI checks. Locked
-environment synchronization was also verified during this cycle. Reports are
+environment synchronization was also verified during
+[001-jobflow-compatible-package](001-jobflow-compatible-package.md). Reports are
 written to ignored `ci-reports/`. The user reported successful GitHub
 execution; a run URL has not been recorded.
+
+Cycle 002's pre-refactor gate passed 2,324 tests on 2026-10-09. Following the
+approved autonomous reorganization, the fresh assistant-executed gate passed
+2,353 tests with 100% statement and branch coverage and successful quality and
+packaging checks. All original collected scenarios remain represented, and
+14 representative record encodings match exactly. The
+[review record](002-durable-run-state/review-and-verification.md)
+identifies the checked working tree and commands. Cycle-specific remote CI and
+live HPC verification remain pending; local process-interruption tests do not
+establish power-loss durability or cross-host filesystem semantics.
 
 The workflow runs on pushes, pull requests, and manual dispatch, retains
 JUnit/coverage reports for seven days and verified distributions for fourteen
@@ -148,7 +171,8 @@ No arbitrary overall coverage percentage is claimed as an upstream
 requirement. The current 100% result is observed coverage for the small
 offline package, not proof of backend execution correctness. GitHub CI
 reports coverage but does not enforce a minimum. The optional local
-`--cov-fail-under=100` flag was used for the cycle 001 close-out check; no
+`--cov-fail-under=100` flag was used for the
+[001-jobflow-compatible-package](001-jobflow-compatible-package.md) close-out check; no
 repository-wide threshold or type checker has been configured.
 
 Review missing branches in identity, publication, replay,
