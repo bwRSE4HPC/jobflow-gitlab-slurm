@@ -1,6 +1,12 @@
 # Decision 0002: attempt publication, recovery, and failure reports
 
-Status: accepted for the first implementation slice on 2026-09-28; not implemented.
+Status: accepted on 2026-09-28; opaque persistence, publication, explicit
+same-identity recovery/audit, and journal registration implemented in
+[cycle 002](../002-durable-run-state.md), with its full local gate passed on
+2026-10-09. Worker/JobStore semantics, parse-only scientific repair, scheduler-aware
+reconciliation, and the complete user-facing attempt report remain planned.
+The policy below describes the intended complete system, not installed execution
+support.
 
 ## Boundary
 
@@ -23,7 +29,7 @@ is retained; repair actions create a separate, linked audit trail.
 
 Publication is necessary but not sufficient for downstream scheduling: the
 corresponding Slurm job must also be terminal and successful, as specified in
-[run-state v1](../run-state-v1.md). Finalization or parse-only repair does not
+[run-state v1](../002-durable-run-state/run-state-v1.md). Finalization or parse-only repair does not
 by itself override a failed or unknown scheduler outcome.
 
 ## Terminal Slurm job with no valid completion marker

@@ -53,7 +53,7 @@ duplicate IDs and empty directories. It selects by exact ID and returns a
 deep copy of the selected site:
 
 ```python
-from jobflow_gitlab_slurm.registry import SiteRegistry
+from jobflow_gitlab_slurm.config.registry import SiteRegistry
 
 registry = SiteRegistry.from_directory("hpc/sites")
 site = registry.select("cluster-a")
