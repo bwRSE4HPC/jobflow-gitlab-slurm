@@ -252,6 +252,12 @@ Stage 3 implementation on the current branch.
 
 ## Remaining acceptance and integration
 
+The committed candidate `a48020e` matches the locally verified input fingerprint,
+and the user reports successful `Offline checks`. The original checklist below
+now requires only final documentation review, confirmation of the required check
+on the final PR head, and explicit user-directed integration. See
+[progress](progress.md) for the current checkpoint; no merge has been performed.
+
 1. User review of this close-out documentation and the current checkpoint.
 2. Confirm the exact merge candidate passes formatting/lint, applicable
    syntax/CLI checks, full offline tests, agreed 100% combined statement/branch

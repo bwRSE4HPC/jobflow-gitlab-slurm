@@ -20,8 +20,13 @@ gate successfully. The subsequently authorized autonomous structural refactor
 is implemented and freshly verified, including domain-oriented source/test
 hierarchies, explicit internal contracts, shared filesystem mechanics, and
 dependency checks. No blocking code finding was identified within the reviewed
-scope. User documentation review, committed merge-candidate identification,
-and remote CI remain outstanding; close-out/merge is not approved.
+scope. The user committed and pushed the cycle as
+`a48020e8b3ce81a75c83e2b901d7d42c89449ada` and reports `Offline checks` passing.
+Read-only candidate inspection confirms a clean working tree before this
+documentation update and an exact match to the verified input fingerprint.
+The cycle is technically ready for user-directed squash-merge, subject to final
+documentation review and the required check remaining green on the PR head.
+Merge authorization has not been given.
 
 Installed Stage 2 persistence covers:
 
@@ -50,8 +55,9 @@ is implemented.
 
 Assistant-executed on 2026-10-09, in the actual working tree on
 `002-durable-run-state`, based on `ded57b3a5c40cbc33f61d5c8612356731e1ab330`.
-The cycle's source/tests include uncommitted and untracked files; the base commit
-alone does not identify the verified implementation. Commands, a verification
+The original gate covered uncommitted and untracked cycle files. The subsequently
+committed candidate `a48020e` has the same source/test/configuration fingerprint;
+the base commit alone does not identify that implementation. Commands, a verification
 input fingerprint, review scope, and findings are retained in the
 [cycle review and verification record](002-durable-run-state/review-and-verification.md).
 
@@ -66,8 +72,8 @@ input fingerprint, review scope, and findings are retained in the
 | Local Markdown file/directory links | Fresh post-refactor check recorded in the verification record. External URLs and heading anchors are not checked. |
 | Cycle review | Assistant code/documentation review completed on 2026-10-09; no blocking code finding identified. |
 | Close-out documentation review | Pending user review of the updated documents. |
-| Exact merge-candidate verification | Working tree verified; candidate commit not yet recorded. Repeat affected gates after substantive source/test/configuration changes. |
-| Cycle 002 remote CI | Pending; no result recorded. |
+| Exact merge-candidate verification | Commit `a48020e8b3ce81a75c83e2b901d7d42c89449ada` matches the locally verified fingerprint exactly; read-only inspection, no new test execution. |
+| Cycle 002 remote CI | `Offline checks` user-reported passing after commit/push; no CI run URL supplied or independently inspected. |
 | Live cross-host filesystem verification | Pending Stage 6 deployment gate. |
 
 These are local executed checks, not remote CI or HPC-readiness evidence.
@@ -101,7 +107,8 @@ beyond the current setup; no new implementation cycle is approved.
 ## Integration gates and next checkpoint
 
 - Public offline CI: cycle 001 user-reported passing on 2026-10-02; no run URL
-  recorded. Cycle 002 remote CI remains pending.
+  recorded. Cycle 002 `Offline checks` is user-reported passing for the pushed
+  candidate; no run URL recorded.
 - GitHub clone from the UC3 controller: user-reported successful; no reproducible
   network probe recorded. Image-builder reachability remains an assumption.
 - Live GitLab/HPC consumer, cross-host filesystem probes, worker recovery,
@@ -135,22 +142,25 @@ break without compatibility wrappers. The fresh local gate above covers the
 reorganized tree. No temporary test checkout was created; the existing isolated
 wheel gate was the sole separate installation.
 
-Next action: review the updated close-out documents, identify the final candidate
-through user-directed Git operations, and run cycle-specific remote CI.
+Next action: review and commit the documentation-only close-out checkpoint,
+confirm the required `Offline checks` status on the resulting PR head, and
+perform a user-directed squash-merge. Record the PR/CI URL and merge reference.
 Stage 2 close-out and Git/remote operations still require explicit instructions.
 
 ### Stage 2 close-out work remaining
 
 User review and assistant review are recorded; the local working-tree gate has
-passed. Remaining gates are:
+passed; the committed candidate matches that gate and remote CI is user-reported
+passing. Remaining gates are:
 
 1. User review of the updated documentation and Stage 3 hand-off in the
    [cycle overview](002-durable-run-state.md#close-out-summary-and-stage-3-hand-off).
-2. Confirm final quality, full offline tests, agreed 100% combined coverage,
-   and packaging gates cover the final code/configuration revision. Record the
-   candidate commit and results; repeat affected gates after substantive changes.
-3. User-directed commit/push and pull request, then passing `Offline checks`
-   on the latest PR revision. Record the CI run URL and commit; CI reports
+2. Preserve the verified code/configuration revision; repeat affected local
+   gates only if those inputs change. The current documentation-only checkpoint
+   does not require repeating runtime tests.
+3. User-directed commit/push of this documentation checkpoint and confirmation
+   of passing `Offline checks` on the latest PR revision. Record the CI run URL
+   and commit; CI reports
    coverage but does not enforce the agreed local 100% threshold.
 4. Explicit close-out approval and user-directed squash-merge. Record the PR
    and merge reference afterward. Begin Stage 3 planning from updated `main`

@@ -20,8 +20,9 @@ persistence and is awaiting final integration gates. Implemented functionality:
 
 All cycle 002 slices have locally accepted verification gates on recorded evidence.
 Assistant cycle review and the full local working-tree verification gate passed
-on 2026-10-09. User documentation review, committed candidate identification,
-remote CI, and explicit close-out/merge approval remain pending.
+on 2026-10-09. The committed candidate matches that local gate, and remote
+`Offline checks` is user-reported passing. Final documentation review and
+explicit user-directed close-out/merge remain.
 See [progress](docs/progress.md) for the current checkpoint and
 the cycle overview for slice-specific evidence and historical test counts.
 

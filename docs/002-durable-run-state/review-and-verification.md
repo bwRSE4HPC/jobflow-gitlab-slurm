@@ -187,3 +187,19 @@ Historical pre-refactor evidence above remains unchanged. Remote CI, candidate
 commit identification, merge approval, and live cross-host durability remain
 unverified. The retention/independent-witness gaps and Stage 3/4/6 boundaries
 are unchanged; structural organization does not close them.
+
+## Committed candidate checkpoint
+
+The user reports committing/pushing the cycle and successful `Offline checks`.
+Read-only inspection identifies candidate
+`a48020e8b3ce81a75c83e2b901d7d42c89449ada` on `002-durable-run-state`, also
+present in the local remote-tracking ref. Its verification-input fingerprint
+matches the fresh refactor gate exactly. The working tree was clean before this
+documentation update. No tests or builds were repeated; the unchanged fingerprint
+ties the recorded local results to this candidate. CI success is user-reported;
+no run URL was supplied and remote CI was not independently inspected.
+
+No technical blocker to cycle integration is identified. Final documentation
+review, a passing required check on the final PR head, and explicit user-directed
+squash-merge remain. No merge or other Git mutation was performed. Live HPC,
+cross-host durability, and retention/witness extensions remain later gates.

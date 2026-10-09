@@ -16,8 +16,9 @@ completion-event registration. Cross-process lifecycle tests complement the
 component failure/restart tests.
 
 Cycle 002 slices are locally accepted and its review is user-reported complete;
-documentation review, exact merge-candidate verification, remote CI, and
-close-out/merge approval remain pending. See [progress](docs/progress.md) and the
+the committed candidate matches the local verification gate and remote
+`Offline checks` is user-reported passing. Final documentation review and
+close-out/merge approval remain. See [progress](docs/progress.md) and the
 [cycle overview](docs/002-durable-run-state.md) for evidence rather than treating
 historical counts as the current suite size.
 
